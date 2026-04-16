@@ -11,10 +11,10 @@ SUPABASE_URL = "https://pynrccuetoyosgiavejf.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bnJjY3VldG95b3NnaWF2ZWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMDg3MzksImV4cCI6MjA5MTg4NDczOX0.sfYn_X331DfKPN8B4IMZtKOLxjpGdQz75ujqYHhMSn8"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 계정 정보 (이미지 요청사항 반영)
+# 계정 정보
 USERS = {
-    "pskhmfg": "pskhmfg1234", # MFG G (마스터 권한)
-    "pskhqm": "pskhqm1234"    # QM G (일반 권한)
+    "pskhmfg": "pskhmfg1234",
+    "pskhqm": "pskhqm1234"
 }
 
 @app.route('/')
@@ -29,16 +29,18 @@ def login_page():
 
 @app.route('/api/login', methods=['POST'])
 def api_login():
-    data = request.get_json()
-    uid = data.get('id')
-    upw = data.get('pw')
-    
-    if uid in USERS and USERS[uid] == upw:
-        session.permanent = True
-        session['logged_in'] = True
-        session['username'] = uid
-        return jsonify({"success": True})
-    return jsonify({"success": False}), 401
+    try:
+        data = request.get_json()
+        uid = data.get('id')
+        upw = data.get('pw')
+        if uid in USERS and USERS[uid] == upw:
+            session.permanent = True
+            session['logged_in'] = True
+            session['username'] = uid
+            return jsonify({"success": True})
+        return jsonify({"success": False}), 401
+    except:
+        return jsonify({"success": False}), 400
 
 @app.route('/api/logout')
 def api_logout():
@@ -78,9 +80,10 @@ def respond_request():
 @app.route('/api/requests/<int:req_id>/delete', methods=['POST'])
 def delete_item(req_id):
     if session.get('username') != 'pskhmfg':
-        return jsonify({"msg": "권한 없음"}), 403
+        return jsonify({"msg": "No Permission"}), 403
     supabase.table("requests").delete().eq("id", req_id).execute()
     return jsonify({"message": "Deleted"}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # 혹시 5000번 포트가 충돌 날지 모르니 5001번으로 바꿨습니다.
+    app.run(debug=True, port=5001)
