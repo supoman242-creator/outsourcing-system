@@ -7,47 +7,81 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
-        body { font-family: 'Pretendard', sans-serif; background-color: #f8faff; }
+        body { font-family: 'Pretendard', sans-serif; background-color: #f3f4ff; }
+        .search-input { width: 100%; padding: 4px 8px; font-size: 11px; border: 1px solid #e2e8f0; border-radius: 4px; outline: none; }
+        .search-input:focus { border-color: #6366f1; }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-extrabold text-indigo-900 italic tracking-tight">출하검사 시스템</h1>
-            <button onclick="location.href='/api/logout'" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">로그아웃</button>
+<body class="p-4 md:p-6">
+    <div class="max-w-[1600px] mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-black text-indigo-900 italic tracking-tighter">출하검사 시스템</h1>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center bg-white border border-indigo-100 rounded-lg px-3 py-2 shadow-sm">
+                    <span class="text-[10px] font-black text-indigo-500 mr-2">SCHEDULE FILTER:</span>
+                    <select id="date-filter" class="text-xs font-bold outline-none bg-transparent">
+                        <option value="today">오늘 (Today)</option>
+                        <option value="all" selected>전체 보기 (All)</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2 bg-white border px-3 py-2 rounded-lg shadow-sm">
+                    <span class="text-[10px] font-black text-slate-400">MASTER MODE</span>
+                    <input type="checkbox" class="w-4 h-4 accent-indigo-600">
+                </div>
+                <button onclick="location.href='/api/logout'" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-bold">로그아웃</button>
+            </div>
         </div>
 
-        <div class="bg-white rounded-2xl p-6 shadow-xl mb-8 border border-slate-200">
-            <div class="flex gap-4 mb-4">
-                <button onclick="showTab('all')" id="btn-tab-all" class="px-6 py-2 rounded-xl font-bold bg-indigo-600 text-white shadow-md">전체 리스트</button>
-                <button onclick="showTab('pending')" id="btn-tab-pending" class="px-6 py-2 rounded-xl font-bold bg-white text-slate-600 border hover:bg-slate-50 transition">QM 피드백 대기</button>
+        <div class="bg-white/80 backdrop-blur rounded-3xl p-6 shadow-xl mb-6 border border-white">
+            <div class="flex gap-2 mb-4">
+                <button onclick="changeTab('all')" id="tab-all" class="px-8 py-2.5 rounded-xl font-black text-sm bg-indigo-600 text-white shadow-indigo-200 shadow-lg">전체 리스트</button>
+                <button onclick="changeTab('pending')" id="tab-pending" class="px-8 py-2.5 rounded-xl font-black text-sm bg-white text-slate-500 border border-slate-100 hover:bg-slate-50 transition">QM 피드백 대기</button>
             </div>
             
-            <textarea id="excel-input" rows="4" class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition mb-4 bg-slate-50" placeholder="엑셀 데이터를 복사해서 여기에 붙여넣으세요..."></textarea>
+            <textarea id="excel-input" class="w-full h-32 p-5 border-2 border-dashed border-indigo-100 rounded-2xl focus:border-indigo-400 outline-none transition mb-4 bg-indigo-50/20 text-xs text-slate-400" placeholder="[예시] LOT Code Work Order S/N Cus. Line Model Module Tuning 장소 Tuning B.P MFG G 담당자 출하검사 요청일 출하검사 시각"></textarea>
             
-            <div class="flex justify-between items-center">
-                <span id="detect-count" class="text-sm font-bold text-indigo-600 uppercase tracking-wider">0건 감지됨</span>
-                <button onclick="syncData()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-lg transform active:scale-95 transition">리스트 등록</button>
+            <div class="flex justify-between items-center px-2">
+                <span id="detect-status" class="text-xs font-black text-indigo-500 uppercase italic">0건 감지됨</span>
+                <button onclick="syncData()" class="bg-indigo-600 text-white px-10 py-3 rounded-xl font-black text-sm hover:bg-indigo-700 shadow-lg active:scale-95 transition">리스트 등록</button>
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <div class="bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-100">
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-bold">
-                            <th class="p-4 border-b">상태</th>
-                            <th class="p-4 border-b">LOT</th>
-                            <th class="p-4 border-b text-center">W/O</th>
-                            <th class="p-4 border-b">고객사</th>
-                            <th class="p-4 border-b">Model</th>
-                            <th class="p-4 border-b">MFG</th>
-                            <th class="p-4 border-b">요청일시</th>
-                            <th class="p-4 border-b">QM담당/사유</th>
-                            <th class="p-4 border-b text-center">관리</th>
+                <table class="w-full text-[11px] text-left">
+                    <thead class="bg-slate-50 text-indigo-900 font-black border-b border-slate-100">
+                        <tr>
+                            <th class="p-3">상태</th>
+                            <th class="p-3">LOT</th>
+                            <th class="p-3">W/O</th>
+                            <th class="p-3 text-center">S/N</th>
+                            <th class="p-3">고객사</th>
+                            <th class="p-3">LINE</th>
+                            <th class="p-3">MODEL</th>
+                            <th class="p-3 text-center">MODULE</th>
+                            <th class="p-3">TUNING 장소</th>
+                            <th class="p-3 text-center">TUNING B.P</th>
+                            <th class="p-3 text-center">MFG</th>
+                            <th class="p-3">요청일시</th>
+                            <th class="p-3 text-indigo-500">QM담당/사유</th>
+                        </tr>
+                        <tr class="bg-indigo-50/30">
+                            <td class="p-2"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
+                            <td class="p-2"><input type="text" class="search-input" onkeyup="filterTable()" placeholder="검색"></td>
                         </tr>
                     </thead>
-                    <tbody id="request-table" class="text-sm text-slate-700 divide-y">
+                    <tbody id="main-table" class="divide-y divide-slate-50">
                         </tbody>
                 </table>
             </div>
@@ -55,103 +89,85 @@
     </div>
 
     <script>
-        let allData = [];
+        let fullData = [];
         let currentTab = 'all';
 
         window.onload = function() {
-            fetchData();
-            
+            fetchList();
+            document.getElementById('date-filter').addEventListener('change', renderTable);
             document.getElementById('excel-input').addEventListener('input', (e) => {
-                const lines = e.target.value.trim().split('\n').filter(l => l.length > 0);
-                document.getElementById('detect-count').innerText = `${lines.length}건 감지됨`;
+                const count = e.target.value.trim().split('\n').filter(l => l.length > 0).length;
+                document.getElementById('detect-status').innerText = `${count}건 감지됨`;
             });
         };
 
-        async function fetchData() {
+        async function fetchList() {
             const res = await fetch('/api/requests');
-            allData = await res.json();
+            fullData = await res.json();
             renderTable();
         }
 
         function renderTable() {
-            const container = document.getElementById('request-table');
-            let filtered = allData;
-            
-            if(currentTab === 'pending') {
-                filtered = filtered.filter(d => d.status === '검사 요청');
+            const filterDate = document.getElementById('date-filter').value;
+            const container = document.getElementById('main-table');
+            let data = fullData;
+
+            if(currentTab === 'pending') data = data.filter(d => d.status === '검사 요청');
+
+            if(filterDate === 'today') {
+                const now = new Date();
+                const todayStr = `${String(now.getMonth()+1).padStart(2,'0')}월 ${String(now.getDate()).padStart(2,'0')}일`;
+                data = data.filter(item => item.req_date && item.req_date.includes(todayStr));
             }
 
-            container.innerHTML = filtered.map(item => `
-                <tr class="hover:bg-indigo-50/50 transition cursor-default">
-                    <td class="p-4">
-                        <span class="px-3 py-1 rounded-full text-xs font-bold ${item.status === '검사 완료' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
-                            ${item.status}
-                        </span>
-                    </td>
-                    <td class="p-4 font-semibold text-slate-900">${item.lot || '-'}</td>
-                    <td class="p-4 text-xs text-slate-500 text-center">${item.wo || '-'}</td>
-                    <td class="p-4">${item.cus || '-'}</td>
-                    <td class="p-4 font-medium text-indigo-600">${item.model || '-'}</td>
-                    <td class="p-4 font-medium">${item.mfg_pic || '-'}</td>
-                    <td class="p-4 text-xs text-slate-500">${item.req_date} ${item.req_time}</td>
-                    <td class="p-4 text-xs">
-                        <span class="font-bold text-slate-900">${item.qm_pic || ''}</span>
-                        ${item.reject_reason ? `<br><span class="text-red-500 font-medium">${item.reject_reason}</span>` : ''}
-                    </td>
-                    <td class="p-4 text-center">
-                        <button onclick="deleteItem(${item.id})" class="text-slate-300 hover:text-red-500 transition-colors p-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </button>
-                    </td>
+            container.innerHTML = data.map(item => `
+                <tr class="hover:bg-indigo-50/30 transition">
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-black ${item.status === '검사 완료' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">${item.status}</span></td>
+                    <td class="p-3 font-bold text-slate-700">${item.lot || '-'}</td>
+                    <td class="p-3 text-[10px] text-slate-400">${item.wo || '-'}</td>
+                    <td class="p-3 text-center font-medium">${item.sn || '-'}</td>
+                    <td class="p-3 font-medium">${item.cus || '-'}</td>
+                    <td class="p-3 text-slate-500">${item.line || '-'}</td>
+                    <td class="p-3 font-black text-indigo-600">${item.model || '-'}</td>
+                    <td class="p-3 text-center">${item.module || '-'}</td>
+                    <td class="p-3">${item.tuning_loc || '-'}</td>
+                    <td class="p-3 text-center">${item.tuning_bp || '-'}</td>
+                    <td class="p-3 text-center font-bold">${item.mfg_pic || '-'}</td>
+                    <td class="p-3 text-[10px] text-slate-400">${item.req_date} ${item.req_time}</td>
+                    <td class="p-3 text-slate-900 font-bold">${item.qm_pic || ''} <span class="text-red-500 font-medium">${item.reject_reason || ''}</span></td>
                 </tr>
             `).join('');
         }
 
-        async function syncData() {
-            const input = document.getElementById('excel-input').value.trim();
-            if(!input) return alert("등록할 데이터가 없습니다.");
-
-            const rows = input.split('\n').map(line => {
-                const cols = line.split(/\t| {2,}/);
-                return {
-                    lot: cols[0], code: cols[1], wo: cols[2], sn: cols[3],
-                    cus: cols[4], line: cols[5], model: cols[6], module: cols[7],
-                    tuning_loc: cols[8], tuning_bp: cols[9], mfg_pic: cols[10],
-                    req_date: cols[11], req_time: cols[12]
-                };
-            });
-
-            const res = await fetch('/api/requests/sync', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(rows)
-            });
-
-            if(res.ok) {
-                document.getElementById('excel-input').value = '';
-                fetchData();
-                alert("데이터가 성공적으로 등록되었습니다.");
-            }
-        }
-
-        async function deleteItem(id) {
-            if(!confirm("해당 데이터를 영구 삭제하시겠습니까?")) return;
-            await fetch(`/api/requests/${id}/delete`, {method: 'POST'});
-            fetchData();
-        }
-
-        function showTab(tab) {
-            currentTab = tab;
-            const btnAll = document.getElementById('btn-tab-all');
-            const btnPending = document.getElementById('btn-tab-pending');
+        function filterTable() {
+            const inputs = document.querySelectorAll('.search-input');
+            const rows = document.querySelectorAll('#main-table tr');
             
-            if(tab === 'all') {
-                btnAll.className = "px-6 py-2 rounded-xl font-bold bg-indigo-600 text-white shadow-md";
-                btnPending.className = "px-6 py-2 rounded-xl font-bold bg-white text-slate-600 border hover:bg-slate-50 transition";
-            } else {
-                btnPending.className = "px-6 py-2 rounded-xl font-bold bg-indigo-600 text-white shadow-md";
-                btnAll.className = "px-6 py-2 rounded-xl font-bold bg-white text-slate-600 border hover:bg-slate-50 transition";
-            }
+            rows.forEach(row => {
+                let show = true;
+                inputs.forEach((input, index) => {
+                    const cellText = row.cells[index + 1].innerText.toLowerCase();
+                    if (input.value && !cellText.includes(input.value.toLowerCase())) show = false;
+                });
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        async function syncData() {
+            const val = document.getElementById('excel-input').value.trim();
+            if(!val) return;
+            const rows = val.split('\n').map(l => {
+                const c = l.split(/\t| {2,}/);
+                return { lot:c[0], code:c[1], wo:c[2], sn:c[3], cus:c[4], line:c[5], model:c[6], module:c[7], tuning_loc:c[8], tuning_bp:c[9], mfg_pic:c[10], req_date:c[11], req_time:c[12] };
+            });
+            const res = await fetch('/api/requests/sync', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(rows) });
+            if(res.ok) { document.getElementById('excel-input').value = ''; fetchList(); alert("등록 완료"); }
+        }
+
+        function changeTab(t) {
+            currentTab = t;
+            document.getElementById('tab-all').className = t === 'all' ? "px-8 py-2.5 rounded-xl font-black text-sm bg-indigo-600 text-white shadow-lg" : "px-8 py-2.5 rounded-xl font-black text-sm bg-white text-slate-500 border border-slate-100";
+            document.getElementById('tab-pending').className = t === 'pending' ? "px-8 py-2.5 rounded-xl font-black text-sm bg-indigo-600 text-white shadow-lg" : "px-8 py-2.5 rounded-xl font-black text-sm bg-white text-slate-500 border border-slate-100";
             renderTable();
         }
     </script>
