@@ -36,9 +36,9 @@
                 <div class="date-filter-container shadow-sm">
                     <span class="text-xs font-black text-violet-700 uppercase">📅 Schedule Filter:</span>
                     <select id="date-select-box" onchange="setDateFilter(this.value)" class="date-select-filter">
-                        <option value="all">전체 보기 (All)</option>
+                        <option value="all" selected>전체 보기 (All)</option>
                         <option value="past">과거 (Past)</option>
-                        <option value="today" selected>오늘 (Today)</option>
+                        <option value="today">오늘 (Today)</option>
                         <option value="future">예정 (Future)</option>
                     </select>
                 </div>
@@ -119,7 +119,8 @@
     <script>
         let allData = [];
         let isMaster = false;
-        let currentDateFilter = 'today';
+        // 개선: 초기 필터 모드를 'all'로 설정
+        let currentDateFilter = 'all'; 
 
         async function fetchData() {
             const res = await fetch('/api/requests');
@@ -251,6 +252,7 @@
                     </div>
                 </div>`).join('');
         }
+
         function toggleRejectArea(id) { document.getElementById(`reject-area-${id}`).classList.toggle('open'); }
         async function submitReject(id) {
             const reason = document.getElementById(`reject-reason-${id}`).value.trim();
