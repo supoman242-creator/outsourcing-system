@@ -10,8 +10,11 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .nav-btn.active { background-color: #5b21b6; color: white; border-bottom: 4px solid #8b5cf6; }
-        th { white-space: nowrap; font-size: 11px; padding: 12px 6px; background: #fdfcff; border-bottom: 2px solid #ddd6fe; text-align: center; color: #5b21b6; }
-        td { font-size: 12px; padding: 10px 6px; border-bottom: 1px solid #ede9fe; text-align: center; background: white; }
+        
+        /* 테이블 개선 핵심 코드 */
+        th { white-space: nowrap; font-size: 11px; padding: 12px 10px; background: #fdfcff; border-bottom: 2px solid #ddd6fe; text-align: center; color: #5b21b6; }
+        td { font-size: 12px; padding: 10px 10px; border-bottom: 1px solid #ede9fe; text-align: center; background: white; white-space: nowrap; } /* white-space: nowrap 추가 */
+        
         .filter-input { width: 100%; font-size: 10px; padding: 4px; border: 1px solid #ddd6fe; border-radius: 6px; outline: none; }
         .date-filter-container { background: white; padding: 8px 16px; border-radius: 12px; border: 2px solid #ddd6fe; display: flex; align-items: center; gap: 10px; }
         .date-select-filter { background: #f5f3ff; border: 1px solid #8b5cf6; color: #5b21b6; font-weight: 900; font-size: 12px; padding: 4px 8px; border-radius: 8px; cursor: pointer; }
@@ -65,7 +68,8 @@
                     <button onclick="submitSync()" class="bg-violet-600 text-white px-8 py-2 rounded-xl font-black text-sm">리스트 등록</button>
                 </div>
             </div>
-            <div class="bg-white border-2 border-violet-100 rounded-3xl overflow-hidden shadow-sm" id="table-container">
+            
+            <div class="bg-white border-2 border-violet-100 rounded-3xl shadow-sm overflow-hidden" id="table-container">
                 <div class="overflow-x-auto max-h-[700px]">
                     <table class="w-full border-collapse">
                         <thead class="sticky top-0 bg-white z-10 shadow-md">
@@ -119,7 +123,6 @@
     <script>
         let allData = [];
         let isMaster = false;
-        // 개선: 초기 필터 모드를 'all'로 설정
         let currentDateFilter = 'all'; 
 
         async function fetchData() {
@@ -194,11 +197,11 @@
                     <td><span class="px-3 py-1.5 rounded-lg font-black text-[11px] ${i.status==='확정'?'bg-green-100 text-green-700':i.status==='반려'?'bg-red-100 text-red-700':'bg-amber-100 text-amber-700'}">${i.status}</span></td>
                     <td class="font-bold text-slate-700">${i.lot}</td>
                     <td class="text-slate-500">${i.wo}</td><td class="text-indigo-600 font-black">${i.sn}</td><td>${i.cus}</td><td>${i.line}</td>
-                    <td class="font-black text-left pl-4">${i.model}</td><td class="font-bold text-violet-600">${i.module}</td>
+                    <td class="font-black text-left px-4">${i.model}</td><td class="font-bold text-violet-600 text-center">${i.module}</td>
                     <td class="text-slate-600">${i.tuning_loc || '-'}</td><td class="text-slate-600">${i.tuning_bp || '-'}</td>
                     <td class="font-medium">${i.mfg_pic}</td>
                     <td class="text-slate-500 font-medium">${i.req_date} ${i.req_time}</td>
-                    <td class="text-violet-700 font-black">${i.qm_pic||'-'}${i.reject_reason?`<div class="text-[10px] text-red-500 mt-1 font-bold">[사유] ${i.reject_reason}</div>`:''}</td>
+                    <td class="text-violet-700 font-black">${i.qm_pic||'-'}${i.reject_reason?`<span class="text-[10px] text-red-500 ml-2 font-bold">[사유] ${i.reject_reason}</span>`:''}</td>
                     <td class="master-only"><button onclick="event.stopPropagation(); deleteItem(${i.id})" class="text-red-400 font-bold">삭제</button></td>
                 </tr>`).join('');
             filterTable();
