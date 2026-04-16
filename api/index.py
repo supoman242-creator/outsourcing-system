@@ -23,26 +23,16 @@ def index():
         return render_template('index.html')
     return redirect(url_for('login_page'))
 
-# 로그인 페이지 (GET/POST 모두 허용하여 에러 방지)
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login')
 def login_page():
-    if request.method == 'POST':
-        # 만약 JSON이 아닌 일반 폼으로 데이터가 올 경우를 대비
-        uid = request.form.get('id')
-        upw = request.form.get('pw')
-        if uid in USERS and USERS[uid] == upw:
-            session.permanent = True
-            session['logged_in'] = True
-            session['username'] = uid
-            return redirect(url_for('index'))
     return render_template('login.html')
 
-# API 로그인 전용 (자바스크립트 통신용)
+# 로그인 API (JSON 통신)
 @app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.get_json()
     if not data:
-        return jsonify({"success": False, "message": "데이터가 없습니다."}), 400
+        return jsonify({"success": False, "message": "데이터 형식이 잘못되었습니다."}), 400
     
     uid = data.get('id')
     upw = data.get('pw')
@@ -52,7 +42,7 @@ def api_login():
         session['logged_in'] = True
         session['username'] = uid
         return jsonify({"success": True})
-    return jsonify({"success": False, "message": "ID/PW 불일치"}), 401
+    return jsonify({"success": False, "message": "아이디 또는 비밀번호가 틀립니다."}), 401
 
 @app.route('/api/logout')
 def api_logout():
@@ -67,8 +57,11 @@ def get_user():
 @app.route('/api/requests', methods=['GET'])
 def get_requests():
     if 'logged_in' not in session: return jsonify([]), 401
-    response = supabase.table("requests").select("*").order("id", desc=True).execute()
-    return jsonify(response.data)
+    try:
+        response = supabase.table("requests").select("*").order("id", desc=True).execute()
+        return jsonify(response.data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/requests/sync', methods=['POST'])
 def sync_requests():
@@ -84,8 +77,11 @@ def respond_request():
     if 'logged_in' not in session: return jsonify({"msg": "Unauthorized"}), 401
     data = request.get_json()
     req_id = data.pop('id')
+    
+    # 확정 시 반려 사유를 빈 값으로 덮어써서 잔상 제거
     if data.get('status') == '확정':
         data['reject_reason'] = ''
+        
     supabase.table("requests").update(data).eq("id", req_id).execute()
     return jsonify({"message": "Success"}), 200
 
@@ -93,7 +89,7 @@ def respond_request():
 def delete_item(req_id):
     if 'logged_in' not in session: return jsonify({"msg": "Unauthorized"}), 401
     if session.get('username') != 'pskhmfg':
-        return jsonify({"msg": "No Permission"}), 403
+        return jsonify({"msg": "권한이 없습니다."}), 403
     supabase.table("requests").delete().eq("id", req_id).execute()
     return jsonify({"message": "Deleted"}), 200
 
