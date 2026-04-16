@@ -4,39 +4,56 @@
     <meta charset="UTF-8">
     <title>로그인 - 출하검사 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; }
+    </style>
 </head>
 <body class="bg-slate-100 flex items-center justify-center h-screen">
     <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md">
-        <h1 class="text-3xl font-black text-indigo-950 mb-8 text-center italic">SHIPMENT SYSTEM</h1>
-        <form id="login-form" class="space-y-6">
+        <h1 class="text-3xl font-black text-indigo-950 mb-8 text-center italic tracking-tighter text-indigo-600">PSK INSPECTION</h1>
+        <form id="login-form" class="space-y-5">
             <div>
-                <label class="block text-xs font-black text-indigo-500 mb-2 uppercase">User ID</label>
-                <input type="text" id="uid" required class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 font-bold">
+                <label class="block text-[10px] font-black text-indigo-400 mb-2 ml-1">USER ID</label>
+                <input type="text" id="uid" required 
+                    class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 transition-all font-bold" 
+                    placeholder="아이디를 입력하세요">
             </div>
             <div>
-                <label class="block text-xs font-black text-indigo-500 mb-2 uppercase">Password</label>
-                <input type="password" id="upw" required class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 font-bold">
+                <label class="block text-[10px] font-black text-indigo-400 mb-2 ml-1">PASSWORD</label>
+                <input type="password" id="upw" required 
+                    class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 transition-all font-bold" 
+                    placeholder="••••••••">
             </div>
-            <button type="submit" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-lg hover:bg-indigo-700 transition-all">SIGN IN</button>
+            <button type="submit" 
+                class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-lg hover:bg-indigo-700 transition-all active:scale-95">
+                LOGIN
+            </button>
         </form>
     </div>
 
     <script>
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const idValue = document.getElementById('uid').value;
-            const pwValue = document.getElementById('upw').value;
+            const id = document.getElementById('uid').value;
+            const pw = document.getElementById('upw').value;
 
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: idValue, pw: pwValue })
-            });
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, pw: pw })
+                });
 
-            if (response.ok) {
-                location.href = '/';
-            } else {
-                alert('로그인 정보가 올바르지 않습니다.');
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    location.href = '/';
+                } else {
+                    alert(result.message || '아이디 또는 비밀번호가 틀렸습니다.');
+                }
+            } catch (err) {
+                alert('서버 연결에 실패했습니다.');
             }
         });
     </script>
