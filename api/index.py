@@ -4,7 +4,6 @@ import functools
 app = Flask(__name__)
 app.secret_key = "psk_inspection_key_2026"
 
-# 로그인 허용 계정
 USERS = {
     "pskhmfg": "pskhmfg1234",
     "pskhqm": "pskhqm1234"
@@ -17,14 +16,15 @@ def login_required(f):
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
         if 'username' not in session:
-            return jsonify({"error": "Unauthorized"}), 401
+            if request.path.startswith('/api/'):
+                return jsonify({"error": "Unauthorized"}), 401
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
 @app.route('/')
+@login_required
 def index():
-    if 'username' not in session:
-        return redirect(url_for('login'))
     return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -33,6 +33,7 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         if USERS.get(username) == password:
+            session.permanent = True
             session['username'] = username
             return redirect(url_for('index'))
         return "<script>alert('아이디 또는 비밀번호가 틀렸습니다.'); history.back();</script>", 401
@@ -58,6 +59,7 @@ def get_requests():
 def sync_requests():
     global next_id
     new_items = request.json
+    if not new_items: return jsonify({"success": True})
     for item in new_items:
         item['id'] = next_id
         item['status'] = '검사 요청'
@@ -79,8 +81,6 @@ def respond_request():
             if 'reject_reason' in data: item['reject_reason'] = data['reject_reason']
             if 'req_date' in data: item['req_date'] = data['req_date']
             if 'req_time' in data: item['req_time'] = data['req_time']
-            
-            # 확정(ACCEPT) 시에는 반려 사유를 초기화하여 '11' 같은 잔상이 남지 않게 함
             if data.get('status') == '확정':
                 item['reject_reason'] = ''
             return jsonify({"success": True})
