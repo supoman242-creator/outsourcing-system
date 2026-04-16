@@ -1,18 +1,72 @@
-// login.html 내의 로그인 함수 예시
-async function handleLogin(e) {
-    e.preventDefault();
-    const id = document.querySelector('input[name="username"]').value;
-    const pw = document.querySelector('input[name="password"]').value;
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - 출하검사 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md border-2 border-indigo-50">
+        <h1 class="text-3xl font-black text-indigo-950 mb-2 italic text-center">SHIPMENT</h1>
+        <p class="text-center text-slate-400 text-xs font-bold mb-8 uppercase tracking-widest">Inspection Management System</p>
+        
+        <form id="login-form" class="space-y-6">
+            <div>
+                <label class="block text-[10px] font-black text-indigo-500 uppercase mb-2 ml-1">User ID</label>
+                <input type="text" id="user-id" required 
+                    class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 transition-all font-bold text-slate-700" 
+                    placeholder="아이디를 입력하세요">
+            </div>
+            <div>
+                <label class="block text-[10px] font-black text-indigo-500 uppercase mb-2 ml-1">Password</label>
+                <input type="password" id="user-pw" required 
+                    class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 transition-all font-bold text-slate-700" 
+                    placeholder="••••••••">
+            </div>
+            <button type="submit" 
+                class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-lg hover:bg-indigo-700 hover:-translate-y-1 active:scale-95 transition-all">
+                SIGN IN
+            </button>
+        </form>
+        
+        <p class="mt-8 text-center text-[10px] text-slate-400 font-medium">
+            © 2026 PSK Semiconductor Equipment Engineer Team
+        </p>
+    </div>
 
-    const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id, pw: pw }) // app.py의 id, pw와 맞춤
-    });
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const id = document.getElementById('user-id').value;
+            const pw = document.getElementById('user-pw').value;
 
-    if (res.ok) {
-        location.href = '/';
-    } else {
-        alert('로그인 실패!');
-    }
-}
+            try {
+                // 서버의 /api/login 경로로 JSON 데이터 전송
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, pw: pw })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // 로그인 성공 시 메인 화면으로 이동
+                    location.href = '/';
+                } else {
+                    alert(result.message || '로그인에 실패했습니다. 아이디와 비밀번호를 확인하세요.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('서버 연결에 실패했습니다.');
+            }
+        });
+    </script>
+</body>
+</html>
