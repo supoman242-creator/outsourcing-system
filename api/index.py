@@ -1,9 +1,7 @@
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from supabase import create_client, Client
 from datetime import timedelta
-import os
 
-# 경로를 기본값으로 수정하여 에러 방지 (templates 폴더가 app.py와 같은 위치에 있을 때)
 app = Flask(__name__)
 app.secret_key = 'psk_secret_key_1234'
 app.permanent_session_lifetime = timedelta(hours=8)
@@ -13,7 +11,7 @@ SUPABASE_URL = "https://pynrccuetoyosgiavejf.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bnJjY3VldG95b3NnaWF2ZWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMDg3MzksImV4cCI6MjA5MTg4NDczOX0.sfYn_X331DfKPN8B4IMZtKOLxjpGdQz75ujqYHhMSn8"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 로그인 정보 (사용자 추가)
+# 계정 정보
 USERS = {
     "pskhmfg": "pskhmfg1234",
     "pskhqm": "pskhqm1234"
@@ -21,24 +19,27 @@ USERS = {
 
 @app.route('/')
 def index():
-    if 'logged_in' in session: return render_template('index.html')
+    if 'logged_in' in session:
+        return render_template('index.html')
     return redirect(url_for('login_page'))
 
 @app.route('/login')
 def login_page():
     return render_template('login.html')
 
+# 핵심: 로그인 API (Method Not Allowed 방지를 위해 POST 허용)
 @app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.get_json()
-    username = data.get('id')
-    password = data.get('pw')
+    uid = data.get('id')
+    upw = data.get('pw')
     
-    if USERS.get(username) == password:
+    if uid in USERS and USERS[uid] == upw:
+        session.permanent = True
         session['logged_in'] = True
-        session['username'] = username
+        session['username'] = uid
         return jsonify({"success": True})
-    return jsonify({"success": False}), 401
+    return jsonify({"success": False, "message": "아이디 또는 비밀번호가 틀립니다."}), 401
 
 @app.route('/api/logout')
 def api_logout():
@@ -71,7 +72,7 @@ def respond_request():
     data = request.get_json()
     req_id = data.pop('id')
     
-    # [중요] 확정 시 반려 사유 초기화 로직
+    # 확정 시 반려 사유 초기화
     if data.get('status') == '확정':
         data['reject_reason'] = ''
         
@@ -81,6 +82,9 @@ def respond_request():
 @app.route('/api/requests/<int:req_id>/delete', methods=['POST'])
 def delete_item(req_id):
     if 'logged_in' not in session: return jsonify({"msg": "Unauthorized"}), 401
+    # pskhmfg만 삭제 권한 부여
+    if session.get('username') != 'pskhmfg':
+        return jsonify({"msg": "No Permission"}), 403
     supabase.table("requests").delete().eq("id", req_id).execute()
     return jsonify({"message": "Deleted"}), 200
 
