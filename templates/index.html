@@ -27,7 +27,6 @@
         .reject-area { transition: all 0.4s ease; max-height: 0; overflow: hidden; opacity: 0; }
         .reject-area.open { max-height: 400px; opacity: 1; margin-top: 1rem; }
         
-        /* 마스터 스위치 숨김 초기값 */
         #master-switch-wrapper { display: none; }
     </style>
 </head>
@@ -132,22 +131,24 @@
         let allData = [];
         let isMaster = false;
         let currentDateFilter = 'all'; 
-        let currentUser = ""; // 현재 로그인 유저 저장용
+        let currentUser = ""; 
+
+        async function checkUser() {
+            try {
+                const userRes = await fetch('/api/user');
+                if (userRes.ok) {
+                    const userData = await userRes.json();
+                    currentUser = userData.username;
+                    if(currentUser === 'pskhmfg') {
+                        document.getElementById('master-switch-wrapper').style.display = 'block';
+                        document.getElementById('excel-input-area').style.display = 'block';
+                    }
+                }
+            } catch (e) { console.log("Auth Check Failed"); }
+        }
 
         async function fetchData() {
-            // 유저 정보 가져오기 (서버에서 /api/me 같은 엔드포인트가 있다고 가정하거나 로그인 정보를 확인)
-            try {
-                const userRes = await fetch('/api/user'); // 로그인한 유저 정보를 반환하는 API라고 가정
-                const userData = await userRes.json();
-                currentUser = userData.username; 
-                
-                // 제조 계정(pskhmfg)인 경우에만 마스터 스위치와 엑셀 입력창 노출
-                if(currentUser === 'pskhmfg') {
-                    document.getElementById('master-switch-wrapper').style.display = 'block';
-                    document.getElementById('excel-input-area').style.display = 'block';
-                }
-            } catch (e) { console.log("User info fetch failed"); }
-
+            await checkUser(); 
             const res = await fetch('/api/requests');
             if(res.status === 401) { location.href = '/login'; return; }
             allData = await res.json();
@@ -223,15 +224,14 @@
                     <td class="text-slate-600">${i.tuning_loc || '-'}</td><td class="text-slate-600">${i.tuning_bp || '-'}</td>
                     <td class="font-medium">${i.mfg_pic}</td>
                     <td class="text-slate-500 font-medium">${i.req_date} ${i.req_time}</td>
-                    <td class="text-violet-700 font-black">${i.qm_pic||'-'}${i.reject_reason?`<span class="text-[10px] text-red-500 ml-2 font-bold">[사유] ${i.reject_reason}</span>`:''}</td>
+                    <td class="text-violet-700 font-black">${i.qm_pic||'-'}${ (i.status === '반려' && i.reject_reason) ? `<span class="text-[10px] text-red-500 ml-2 font-bold">[사유] ${i.reject_reason}</span>` : '' }</td>
                     <td class="master-only"><button onclick="event.stopPropagation(); deleteItem(${i.id})" class="text-red-400 font-bold">삭제</button></td>
                 </tr>`).join('');
             filterTable();
         }
 
         function openEditModal(id, date, time) {
-            // 품질 계정은 수정 모달을 열지 못하게 하려면 아래 주석 해제
-            // if(currentUser === 'pskhqm') return; 
+            if(currentUser === 'pskhqm') return; 
             document.getElementById('edit-id').value = id;
             document.getElementById('edit-date').value = date;
             document.getElementById('edit-time').value = time;
@@ -298,11 +298,7 @@
         function changeTab(n) { document.querySelectorAll('.tab-content, .nav-btn').forEach(e => e.classList.remove('active')); document.getElementById('tab-'+n).classList.add('active'); document.getElementById('btn-'+n).classList.add('active'); }
         
         function toggleMaster() { 
-            // 보안을 위해 스크립트 단에서도 한 번 더 체크
-            if(currentUser !== 'pskhmfg') {
-                alert("권한이 없습니다.");
-                return;
-            }
+            if(currentUser !== 'pskhmfg') return;
             isMaster = !isMaster; 
             document.getElementById('master-dot').style.left = isMaster ? '1.6rem' : '0.125rem'; 
             document.getElementById('table-container').classList.toggle('master-active', isMaster); 
