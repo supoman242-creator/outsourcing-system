@@ -23,14 +23,27 @@ def index():
         return render_template('index.html')
     return redirect(url_for('login_page'))
 
-@app.route('/login')
+# 로그인 페이지 (GET/POST 모두 허용하여 에러 방지)
+@app.route('/login', methods=['GET', 'POST'])
 def login_page():
+    if request.method == 'POST':
+        # 만약 JSON이 아닌 일반 폼으로 데이터가 올 경우를 대비
+        uid = request.form.get('id')
+        upw = request.form.get('pw')
+        if uid in USERS and USERS[uid] == upw:
+            session.permanent = True
+            session['logged_in'] = True
+            session['username'] = uid
+            return redirect(url_for('index'))
     return render_template('login.html')
 
-# 핵심: 로그인 API (Method Not Allowed 방지를 위해 POST 허용)
+# API 로그인 전용 (자바스크립트 통신용)
 @app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "데이터가 없습니다."}), 400
+    
     uid = data.get('id')
     upw = data.get('pw')
     
@@ -39,7 +52,7 @@ def api_login():
         session['logged_in'] = True
         session['username'] = uid
         return jsonify({"success": True})
-    return jsonify({"success": False, "message": "아이디 또는 비밀번호가 틀립니다."}), 401
+    return jsonify({"success": False, "message": "ID/PW 불일치"}), 401
 
 @app.route('/api/logout')
 def api_logout():
@@ -71,18 +84,14 @@ def respond_request():
     if 'logged_in' not in session: return jsonify({"msg": "Unauthorized"}), 401
     data = request.get_json()
     req_id = data.pop('id')
-    
-    # 확정 시 반려 사유 초기화
     if data.get('status') == '확정':
         data['reject_reason'] = ''
-        
     supabase.table("requests").update(data).eq("id", req_id).execute()
     return jsonify({"message": "Success"}), 200
 
 @app.route('/api/requests/<int:req_id>/delete', methods=['POST'])
 def delete_item(req_id):
     if 'logged_in' not in session: return jsonify({"msg": "Unauthorized"}), 401
-    # pskhmfg만 삭제 권한 부여
     if session.get('username') != 'pskhmfg':
         return jsonify({"msg": "No Permission"}), 403
     supabase.table("requests").delete().eq("id", req_id).execute()
