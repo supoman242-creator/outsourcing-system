@@ -1,79 +1,113 @@
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
-from supabase import create_client, Client
-from datetime import timedelta
-import os
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from datetime import datetime
+import functools
 
-app = Flask(__name__, template_folder='../templates')
-app.secret_key = 'psk_secret_key_1234'
-app.permanent_session_lifetime = timedelta(hours=8)
+app = Flask(__name__)
+app.secret_key = "psk_secret_key_2026" # 세션 보안을 위한 키
 
-# 사용자 정보 및 데이터베이스 설정 반영 완료
-SUPABASE_URL = "https://pynrccuetoyosgiavejf.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bnJjY3VldG95b3NnaWF2ZWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMDg3MzksImV4cCI6MjA5MTg4NDczOX0.sfYn_X331DfKPN8B4IMZtKOLxjpGdQz75ujqYHhMSn8"
+# 1. 사용자 계정 정보 (요청하신 계정 반영)
+USERS = {
+    "pskhmfg": "pskhmfg1234", # 제조 G (Master 권한)
+    "pskhqm": "pskhqm1234"    # 품질 G (조회/피드백 권한)
+}
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# 데이터 저장용 (DB 대신 메모리 사용 - 실제 운영시 DB 연결 권장)
+requests_data = []
+next_id = 1
 
-# 로그인 정보
-USER_DATA = {"id": "pskhmfg", "pw": "pskhmfg1234"}
+# 로그인 체크 데코레이터
+def login_required(f):
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/')
 def index():
-    if 'logged_in' in session: return render_template('index.html')
-    return redirect(url_for('login_page'))
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    return render_template('index.html')
 
-@app.route('/login')
-def login_page():
-    return render_template('login.html')
-
-@app.route('/api/login', methods=['POST'])
-def api_login():
-    data = request.get_json()
-    if data.get('id') == USER_DATA['id'] and data.get('pw') == USER_DATA['pw']:
-        session['logged_in'] = True
-        return jsonify({"success": True})
-    return jsonify({"success": False}), 401
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if USERS.get(username) == password:
+            session['username'] = username
+            return redirect(url_for('index'))
+        return "로그인 실패: 아이디 또는 비밀번호를 확인하세요.", 401
+    return '''
+        <form method="post" style="display:flex; flex-direction:column; width:300px; margin:100px auto; gap:10px;">
+            <h2 style="text-align:center;">출하검사 시스템 로그인</h2>
+            <input name="username" placeholder="아이디" required style="padding:10px;">
+            <input name="password" type="password" placeholder="비밀번호" required style="padding:10px;">
+            <button type="submit" style="padding:10px; background:#5b21b6; color:white; border:none; cursor:pointer;">로그인</button>
+        </form>
+    '''
 
 @app.route('/api/logout')
-def api_logout():
-    session.pop('logged_in', None)
-    return redirect(url_for('login_page'))
+def logout():
+    session.pop('username', None)
+    return redirect(url_for('login'))
+
+# 현재 로그인한 유저 정보 반환 (index.html에서 권한 제어용으로 사용)
+@app.route('/api/user')
+@login_required
+def get_user():
+    return jsonify({"username": session['username']})
 
 @app.route('/api/requests', methods=['GET'])
+@login_required
 def get_requests():
-    if 'logged_in' not in session: return jsonify([]), 401
-    # DB에서 최신순으로 데이터 로드
-    response = supabase.table("requests").select("*").order("id", desc=True).execute()
-    return jsonify(response.data)
+    return jsonify(requests_data)
 
 @app.route('/api/requests/sync', methods=['POST'])
+@login_required
 def sync_requests():
-    if 'logged_in' not in session: return jsonify({"msg": "Unauthorized"}), 401
-    data = request.get_json()
-    for d in data:
-        d['status'] = '검사 요청'
-        # 엑셀 데이터 DB 저장
-        supabase.table("requests").insert(d).execute()
-    return jsonify({"message": "Synced"}), 200
+    global next_id
+    new_items = request.json
+    for item in new_items:
+        item['id'] = next_id
+        item['status'] = '검사 요청'
+        item['qm_pic'] = ''
+        item['reject_reason'] = ''
+        requests_data.append(item)
+        next_id += 1
+    return jsonify({"success": True})
 
 @app.route('/api/respond', methods=['POST'])
+@login_required
 def respond_request():
-    if 'logged_in' not in session: return jsonify({"msg": "Unauthorized"}), 401
-    data = request.get_json()
-    req_id = data.pop('id')
-    # QM 피드백 결과 업데이트
-    supabase.table("requests").update(data).eq("id", req_id).execute()
-    return jsonify({"message": "Success"}), 200
+    data = request.json
+    req_id = data.get('id')
+    for item in requests_data:
+        if item['id'] == req_id:
+            # 수정 모드(제조)와 확정/반려 모드(품질) 통합 처리
+            if 'status' in data: item['status'] = data['status']
+            if 'qm_pic' in data: item['qm_pic'] = data['qm_pic']
+            if 'reject_reason' in data: item['reject_reason'] = data['reject_reason']
+            if 'req_date' in data: item['req_date'] = data['req_date']
+            if 'req_time' in data: item['req_time'] = data['req_time']
+            
+            # 개선: 확정(ACCEPT) 시에는 기존의 반려 사유를 초기화하여 '11' 같은 잔상이 남지 않게 함
+            if data.get('status') == '확정':
+                item['reject_reason'] = ''
+            return jsonify({"success": True})
+    return jsonify({"error": "Not found"}), 404
 
 @app.route('/api/requests/<int:req_id>/delete', methods=['POST'])
-def delete_item(req_id):
-    if 'logged_in' not in session: return jsonify({"msg": "Unauthorized"}), 401
-    # 항목 삭제
-    supabase.table("requests").delete().eq("id", req_id).execute()
-    return jsonify({"message": "Deleted"}), 200
-
-# Vercel 배포용 핸들러 설정
-def handler(event, context):
-    return app(event, context)
+@login_required
+def delete_request(req_id):
+    # 보안: 제조 계정(pskhmfg)만 삭제 가능하도록 서버에서도 체크
+    if session.get('username') != 'pskhmfg':
+        return jsonify({"error": "Permission denied"}), 403
+        
+    global requests_data
+    requests_data = [i for i in requests_data if i['id'] != req_id]
+    return jsonify({"success": True})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
