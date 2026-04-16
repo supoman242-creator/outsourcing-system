@@ -2,277 +2,158 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>출하검사 시스템 - 메인</title>
+    <title>출하검사 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; letter-spacing: -0.025em; background-color: #f8fafc; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .nav-btn.active { background-color: #4f46e5; color: white; border-bottom: 4px solid #818cf8; }
-        th { white-space: nowrap; font-size: 11px; padding: 12px 10px; background: #f1f5f9; border-bottom: 2px solid #e2e8f0; text-align: center; color: #475569; }
-        td { font-size: 12px; padding: 10px 10px; border-bottom: 1px solid #f1f5f9; text-align: center; background: white; white-space: nowrap; }
-        .filter-input { width: 100%; font-size: 10px; padding: 4px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; }
+        .nav-btn.active { background-color: #4f46e5; color: white; }
+        th { font-size: 11px; padding: 12px; background: #f1f5f9; border-bottom: 2px solid #e2e8f0; }
+        td { font-size: 12px; padding: 10px; border-bottom: 1px solid #f1f5f9; text-align: center; }
         .master-only { display: none; }
         .master-active .master-only { display: table-cell; }
-        .excel-container { background: white; border: 2px solid #e2e8f0; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; }
-        #excel-paste { width: 100%; height: 100px; padding: 1rem; border-radius: 1rem; border: 2px dashed #cbd5e1; font-size: 12px; outline: none; resize: none; }
-        .reject-area { transition: all 0.3s ease; max-height: 0; overflow: hidden; opacity: 0; }
-        .reject-area.open { max-height: 200px; opacity: 1; margin-top: 0.5rem; }
     </style>
 </head>
 <body class="p-6">
-    <div id="toast" class="fixed top-5 right-5 z-[300] hidden bg-slate-800 text-white px-6 py-3 rounded-xl shadow-xl font-bold"></div>
-
+    <div id="toast" class="fixed top-5 right-5 hidden bg-slate-800 text-white px-6 py-3 rounded-xl shadow-xl font-bold z-50"></div>
     <div class="max-w-full mx-auto">
-        <div class="flex items-center justify-between mb-8 pb-4 border-b">
-            <h1 class="text-3xl font-black text-slate-900 italic">SHIPMENT SYSTEM</h1>
-            <div class="flex items-center gap-3">
-                <select id="date-select" onchange="setDateFilter(this.value)" class="text-xs font-bold border-2 p-2 rounded-xl outline-none">
-                    <option value="all">전체 일정 (All)</option>
-                    <option value="today">오늘 (Today)</option>
-                    <option value="past">과거 데이터</option>
-                </select>
-                <div id="master-switch-wrapper" style="display:none;">
-                    <button onclick="toggleMaster()" class="bg-white border-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase text-slate-400">Master Mode</button>
+        <div class="flex justify-between items-center mb-6 pb-4 border-b">
+            <h1 class="text-2xl font-black text-slate-900 italic">SHIPMENT SYSTEM</h1>
+            <div class="flex items-center gap-4">
+                <div id="master-tools" style="display:none;">
+                    <button onclick="toggleMaster()" class="bg-white border-2 px-4 py-2 rounded-xl text-[10px] font-black text-slate-400">Master Mode</button>
                 </div>
                 <a href="/api/logout" class="bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-bold">로그아웃</a>
             </div>
         </div>
 
-        <div class="flex space-x-2 mb-6">
-            <button onclick="changeTab('list')" id="btn-list" class="nav-btn active px-8 py-3 rounded-xl text-sm font-black shadow-sm bg-white">검사 리스트</button>
-            <button onclick="changeTab('qm')" id="btn-qm" class="nav-btn px-8 py-3 rounded-xl text-sm font-black text-slate-600 bg-white shadow-sm">
-                QM 피드백 <span id="qm-badge" class="bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px] hidden">0</span>
+        <div class="flex space-x-2 mb-6 font-bold text-sm">
+            <button onclick="changeTab('list')" id="btn-list" class="nav-btn active px-6 py-2 rounded-lg bg-white shadow-sm">리스트</button>
+            <button onclick="changeTab('qm')" id="btn-qm" class="nav-btn px-6 py-2 rounded-lg bg-white shadow-sm relative">
+                QM 피드백 <span id="qm-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full hidden">0</span>
             </button>
         </div>
 
         <div id="tab-list" class="tab-content active">
-            <div class="excel-container" id="excel-input-area" style="display: none;">
-                <textarea id="excel-paste" placeholder="엑셀 데이터를 복사해서 붙여넣으세요..."></textarea>
-                <div id="preview-area" class="hidden flex items-center justify-between mt-3 p-3 bg-slate-50 rounded-lg">
-                    <span class="text-xs font-bold text-slate-600"><span id="item-count">0</span>개 항목 감지됨</span>
-                    <button onclick="submitSync()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-black text-xs">DB 저장하기</button>
+            <div id="excel-area" class="mb-6 hidden bg-white p-4 rounded-2xl border-2 border-dashed border-slate-200">
+                <textarea id="excel-input" class="w-full h-24 p-3 text-xs outline-none resize-none" placeholder="엑셀 복사-붙여넣기..."></textarea>
+                <div id="sync-preview" class="hidden mt-3 flex justify-between items-center">
+                    <span class="text-xs font-bold text-indigo-600"><span id="sync-count">0</span>개 감지됨</span>
+                    <button onclick="submitSync()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-black text-xs">DB 저장</button>
                 </div>
             </div>
-            
-            <div class="bg-white border-2 border-slate-200 rounded-2xl shadow-sm overflow-hidden" id="table-container">
-                <div class="overflow-x-auto max-h-[600px]">
-                    <table class="w-full">
-                        <thead class="sticky top-0 bg-slate-50 z-10">
-                            <tr>
-                                <th>상태</th><th>LOT</th><th>W/O</th><th>S/N</th><th>고객사</th><th>Line</th>
-                                <th>Model</th><th>Module</th><th>Tuning</th><th>B.P</th><th>MFG</th><th>요청일시</th><th>QM/사유</th><th class="master-only">액션</th>
-                            </tr>
-                            <tr class="bg-white">
-                                <th></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th><input type="text" class="filter-input" onkeyup="filterTable()" placeholder="검색"></th>
-                                <th class="master-only"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="list-body"></tbody>
-                    </table>
-                </div>
+            <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                <table class="w-full border-collapse" id="main-table">
+                    <thead>
+                        <tr><th>상태</th><th>LOT</th><th>S/N</th><th>Model</th><th>Module</th><th>MFG</th><th>요청일시</th><th>QM 피드백</th><th class="master-only">액션</th></tr>
+                    </thead>
+                    <tbody id="list-body"></tbody>
+                </table>
             </div>
         </div>
 
         <div id="tab-qm" class="tab-content">
-            <div id="qm-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-        </div>
-    </div>
-
-    <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden z-[400] flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl text-center">
-            <h2 class="text-lg font-black mb-6 uppercase text-slate-800 underline underline-offset-8 decoration-indigo-200">데이터 수정</h2>
-            <div class="space-y-4 text-left">
-                <input type="hidden" id="edit-id">
-                <div><label class="text-[10px] font-black text-slate-400 ml-1">REQUEST DATE</label><input type="text" id="edit-date" class="w-full p-3 bg-slate-50 border rounded-xl text-sm font-bold mt-1"></div>
-                <div><label class="text-[10px] font-black text-slate-400 ml-1">REQUEST TIME</label><input type="text" id="edit-time" class="w-full p-3 bg-slate-50 border rounded-xl text-sm font-bold mt-1"></div>
-            </div>
-            <div class="flex gap-2 mt-8">
-                <button onclick="submitEdit()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-black shadow-lg">수정 완료</button>
-                <button onclick="closeModal()" class="flex-1 bg-slate-100 text-slate-500 py-3 rounded-xl font-black">취소</button>
-            </div>
+            <div id="qm-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
     </div>
 
     <script>
         let allData = [];
-        let isMaster = false;
-        let currentDateFilter = 'all';
         let currentUser = "";
 
-        // 데이터 로드 (Supabase 연동)
-        async function fetchData() {
-            try {
-                const userRes = await fetch('/api/user');
-                if (!userRes.ok) { location.href = '/login'; return; }
-                const userData = await userRes.json();
-                currentUser = userData.username;
+        async function init() {
+            const userRes = await fetch('/api/user');
+            const userData = await userRes.json();
+            currentUser = userData.username;
 
-                if(currentUser === 'pskhmfg') {
-                    document.getElementById('master-switch-wrapper').style.display = 'block';
-                    document.getElementById('excel-input-area').style.display = 'block';
-                }
-
-                const res = await fetch('/api/requests');
-                allData = await res.json();
-                
-                const qmWaitItems = allData.filter(i => i.status === '검사 요청');
-                const badge = document.getElementById('qm-badge');
-                badge.innerText = qmWaitItems.length;
-                badge.classList.toggle('hidden', qmWaitItems.length === 0);
-                
-                renderTable(allData);
-                renderQM(qmWaitItems);
-            } catch (e) { console.error("Load Error:", e); }
+            // 계정 권한 로직: pskhmfg일 때만 엑셀창과 마스터 버튼 노출
+            if(currentUser === 'pskhmfg') {
+                document.getElementById('excel-area').style.display = 'block';
+                document.getElementById('master-tools').style.display = 'block';
+            }
+            loadData();
         }
 
-        function renderTable(data) {
-            const listBody = document.getElementById('list-body');
-            listBody.innerHTML = data.map(i => {
-                const statusColor = i.status === '확정' ? 'bg-green-100 text-green-700' : 
-                                   i.status === '반려' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700';
-                
-                // 확정 시 사유 미노출, 반려 시에만 사유 노출 (공백 제거 로직)
-                const qmInfo = (i.status === '반려' && i.reject_reason) 
-                               ? `${i.qm_pic||'-'} <span class="text-[10px] text-red-500 font-bold ml-1">[사유: ${i.reject_reason}]</span>` 
-                               : (i.qm_pic || '-');
+        async function loadData() {
+            const res = await fetch('/api/requests');
+            allData = await res.json();
+            renderTable();
+            renderQM();
+        }
 
-                return `
-                <tr class="hover:bg-indigo-50/30 transition-colors cursor-pointer" onclick="openEditModal('${i.id}', '${i.req_date}', '${i.req_time}')">
-                    <td><span class="px-2 py-1 rounded-md font-black text-[10px] ${statusColor}">${i.status}</span></td>
-                    <td class="font-bold text-slate-700">${i.lot}</td>
-                    <td class="text-slate-500">${i.wo}</td>
-                    <td class="text-indigo-600 font-black">${i.sn}</td>
-                    <td class="text-[11px]">${i.cus}</td>
-                    <td class="text-[11px]">${i.line}</td>
-                    <td class="font-black text-left px-2">${i.model}</td>
-                    <td class="font-bold text-indigo-600">${i.module}</td>
-                    <td class="text-slate-500">${i.tuning_loc || '-'}</td>
-                    <td class="text-slate-500">${i.tuning_bp || '-'}</td>
-                    <td class="text-[11px] font-medium text-slate-700">${i.mfg_pic}</td>
-                    <td class="text-slate-400 text-[10px]">${i.req_date} ${i.req_time}</td>
-                    <td class="text-indigo-900 font-black text-[11px]">${qmInfo}</td>
-                    <td class="master-only"><button onclick="event.stopPropagation(); deleteItem(${i.id})" class="text-red-400 font-bold hover:text-red-600">삭제</button></td>
+        function renderTable() {
+            const body = document.getElementById('list-body');
+            body.innerHTML = allData.map(i => {
+                const sColor = i.status === '확정' ? 'text-green-600 bg-green-50' : i.status === '반려' ? 'text-red-600 bg-red-50' : 'text-amber-600 bg-amber-50';
+                const qmDetail = (i.status === '반려' && i.reject_reason) ? `${i.qm_pic} <span class="text-red-500 text-[10px] ml-1">[사유: ${i.reject_reason}]</span>` : (i.qm_pic || '-');
+                return `<tr class="hover:bg-slate-50">
+                    <td><span class="px-2 py-0.5 rounded font-bold text-[10px] ${sColor}">${i.status}</span></td>
+                    <td class="font-bold">${i.lot}</td>
+                    <td class="font-black text-indigo-600">${i.sn}</td>
+                    <td class="font-bold text-left">${i.model}</td>
+                    <td class="font-bold text-violet-600">${i.module}</td>
+                    <td>${i.mfg_pic}</td>
+                    <td class="text-[10px] text-slate-400">${i.req_date} ${i.req_time}</td>
+                    <td class="text-left font-bold text-slate-700">${qmDetail}</td>
+                    <td class="master-only"><button onclick="deleteItem(${i.id})" class="text-red-400 font-bold">삭제</button></td>
                 </tr>`;
             }).join('');
-            filterTable();
         }
 
-        function filterTable() {
-            const filters = document.querySelectorAll('.filter-input');
-            const rows = document.getElementById("list-body").rows;
-            const today = new Date(); today.setHours(0,0,0,0);
-
-            for (let i = 0; i < rows.length; i++) {
-                let show = true;
-                if (!allData[i]) continue;
-
-                // 날짜 필터 로직
-                const rowDate = parseDate(allData[i].req_date);
-                if (currentDateFilter !== 'all') {
-                    const rowTime = rowDate.getTime();
-                    const todayTime = today.getTime();
-                    if (currentDateFilter === 'today' && rowTime !== todayTime) show = false;
-                    if (currentDateFilter === 'past' && rowTime >= todayTime) show = false;
-                }
-
-                // 검색어 필터 로직
-                if (show) {
-                    for(let j=0; j<filters.length; j++) {
-                        const fVal = filters[j].value.toLowerCase().trim();
-                        const cell = rows[i].cells[j+1];
-                        if(fVal && cell && !cell.innerText.toLowerCase().includes(fVal)) { show = false; break; }
-                    }
-                }
-                rows[i].style.display = show ? "" : "none";
-            }
-        }
-
-        function parseDate(dStr) {
-            if(!dStr) return new Date(0);
-            const clean = dStr.replace(/[년월일]/g, '-').replace(/\s+/g, '');
-            const parts = clean.split('-').filter(p => p !== '');
-            let d;
-            if(parts.length === 2) d = new Date(new Date().getFullYear(), parts[0]-1, parts[1]);
-            else d = new Date(dStr);
-            d.setHours(0,0,0,0); return d;
-        }
-
-        // 엑셀 입력 감지
-        document.getElementById('excel-paste').addEventListener('input', function() {
-            const rows = this.value.trim().split('\n');
-            window.pastedData = rows.map(row => {
-                const c = row.split('\t');
-                if (c.length < 13) return null;
-                return { lot: c[0], code: c[1], wo: c[2], sn: c[3], cus: c[4], line: c[5], model: c[6], module: c[7], tuning_loc: c[8], tuning_bp: c[9], mfg_pic: c[10], req_date: c[11], req_time: c[12] };
-            }).filter(i => i && !i.lot.includes("LOT"));
-            document.getElementById('item-count').innerText = window.pastedData ? window.pastedData.length : 0;
-            document.getElementById('preview-area').classList.toggle('hidden', !window.pastedData || window.pastedData.length === 0);
-        });
-
-        async function submitSync() {
-            const res = await fetch('/api/requests/sync', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(window.pastedData) });
-            if(res.ok) { document.getElementById('excel-paste').value = ''; document.getElementById('preview-area').classList.add('hidden'); fetchData(); showToast("등록되었습니다."); }
-        }
-
-        function renderQM(qmWait) {
-            const container = document.getElementById('qm-container');
-            if(qmWait.length === 0) { container.innerHTML = `<div class="col-span-full py-20 text-center text-slate-300 font-bold italic">대기 중인 피드백 건이 없습니다.</div>`; return; }
+        function renderQM() {
+            const qmWait = allData.filter(i => i.status === '검사 요청');
+            document.getElementById('qm-badge').innerText = qmWait.length;
+            document.getElementById('qm-badge').classList.toggle('hidden', qmWait.length === 0);
+            const container = document.getElementById('qm-list');
+            if(qmWait.length === 0) { container.innerHTML = `<div class="col-span-full py-20 text-center text-slate-300 font-bold">대기 중인 요청이 없습니다.</div>`; return; }
             container.innerHTML = qmWait.map(i => `
-                <div class="bg-white border-2 border-slate-100 rounded-3xl p-5 shadow-sm">
-                    <div class="flex justify-between items-center mb-4"><span class="bg-indigo-600 text-white px-3 py-1 rounded-full text-[10px] font-bold">LOT: ${i.lot}</span><span class="text-[10px] font-bold text-slate-400">${i.req_date}</span></div>
-                    <h3 class="text-lg font-black text-slate-800 mb-1">${i.model}</h3>
-                    <p class="text-xs text-indigo-500 font-bold mb-4">${i.module} (S/N: ${i.sn})</p>
-                    <div class="flex gap-2 mb-4">
-                        <select id="qmpic-${i.id}" class="flex-1 bg-slate-50 border p-3 rounded-xl text-xs font-bold outline-none">
-                            <option value="">담당자 선택</option><option value="김구원">김구원</option><option value="위대명">위대명</option><option value="박진주">박진주</option><option value="박현용">박현용</option>
+                <div class="bg-white p-5 rounded-2xl border shadow-sm">
+                    <h3 class="font-black text-slate-800 mb-3">${i.model} (SN: ${i.sn})</h3>
+                    <div class="flex gap-2 mb-3">
+                        <select id="pic-${i.id}" class="flex-1 bg-slate-50 border p-2 rounded-lg text-xs font-bold">
+                            <option value="">담당자 선택</option><option value="김구원">김구원</option><option value="위대명">위대명</option><option value="박진주">박진주</option>
                         </select>
-                        <button onclick="respond('${i.id}', '확정')" class="bg-slate-900 text-white px-5 rounded-xl font-black text-xs">확정</button>
-                        <button onclick="toggleReject('${i.id}')" class="bg-rose-50 text-rose-500 px-4 rounded-xl font-black text-xs border border-rose-100">반려</button>
+                        <button onclick="respond(${i.id}, '확정')" class="bg-slate-900 text-white px-4 rounded-lg font-black text-xs">확정</button>
                     </div>
-                    <div id="rej-box-${i.id}" class="reject-area">
-                        <textarea id="rej-msg-${i.id}" class="w-full p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs h-20 outline-none" placeholder="반려 사유를 입력하세요..."></textarea>
-                        <button onclick="respond('${i.id}', '반려')" class="w-full bg-rose-500 text-white py-3 rounded-xl text-xs font-black mt-2">반려 제출</button>
+                    <div class="flex gap-2">
+                        <input id="rej-${i.id}" class="flex-1 bg-rose-50 border border-rose-100 p-2 rounded-lg text-xs" placeholder="반려 사유">
+                        <button onclick="respond(${i.id}, '반려')" class="bg-rose-500 text-white px-4 rounded-lg font-black text-xs">반려</button>
                     </div>
                 </div>`).join('');
         }
 
         async function respond(id, status) {
-            const pic = document.getElementById(`qmpic-${id}`).value;
-            const reason = document.getElementById(`rej-msg-${id}`) ? document.getElementById(`rej-msg-${id}`).value : '';
+            const pic = document.getElementById(`pic-${id}`).value;
+            const reason = document.getElementById(`rej-${id}`).value;
             if(status === '확정' && !pic) return alert("담당자를 선택하세요.");
-            if(status === '반려' && !reason) return alert("반려 사유를 입력하세요.");
-
-            const res = await fetch('/api/respond', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: parseInt(id), qm_pic: pic, status: status, reject_reason: reason }) });
-            if(res.ok) { fetchData(); changeTab('list'); showToast(`${status} 처리 완료`); }
+            const res = await fetch('/api/respond', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id, status, qm_pic: pic, reject_reason: reason }) });
+            if(res.ok) { loadData(); changeTab('list'); showToast(`${status} 처리 완료`); }
         }
 
-        async function deleteItem(id) { if(confirm("삭제하시겠습니까?")) { await fetch(`/api/requests/${id}/delete`, { method: 'POST' }); fetchData(); showToast("삭제 완료"); } }
-        function setDateFilter(v) { currentDateFilter = v; filterTable(); }
-        function openEditModal(id, d, t) { if(currentUser !== 'pskhmfg') return; document.getElementById('edit-id').value = id; document.getElementById('edit-date').value = d; document.getElementById('edit-time').value = t; document.getElementById('edit-modal').classList.remove('hidden'); }
-        function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
-        async function submitEdit() {
-            const res = await fetch('/api/respond', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: parseInt(document.getElementById('edit-id').value), req_date: document.getElementById('edit-date').value, req_time: document.getElementById('edit-time').value, status: '검사 요청' }) });
-            if(res.ok) { closeModal(); fetchData(); showToast("수정되었습니다."); }
+        document.getElementById('excel-input').addEventListener('input', function() {
+            const lines = this.value.trim().split('\n');
+            const data = lines.map(line => {
+                const c = line.split('\t');
+                if(c.length < 13) return null;
+                return { lot: c[0], wo: c[2], sn: c[3], cus: c[4], model: c[6], module: c[7], mfg_pic: c[10], req_date: c[11], req_time: c[12] };
+            }).filter(i => i && !i.lot.includes("LOT"));
+            window.tempSyncData = data;
+            document.getElementById('sync-count').innerText = data.length;
+            document.getElementById('sync-preview').classList.toggle('hidden', data.length === 0);
+        });
+
+        async function submitSync() {
+            await fetch('/api/requests/sync', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(window.tempSyncData) });
+            document.getElementById('excel-input').value = ""; loadData(); showToast("저장 완료");
         }
-        function toggleReject(id) { document.getElementById(`rej-box-${id}`).classList.toggle('open'); }
+
+        async function deleteItem(id) { if(confirm("삭제?")) { await fetch(`/api/requests/${id}/delete`, {method: 'POST'}); loadData(); } }
         function changeTab(n) { document.querySelectorAll('.tab-content, .nav-btn').forEach(e => e.classList.remove('active')); document.getElementById('tab-'+n).classList.add('active'); document.getElementById('btn-'+n).classList.add('active'); }
-        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2000); }
-        function toggleMaster() { isMaster = !isMaster; document.getElementById('table-container').classList.toggle('master-active', isMaster); }
-        window.onload = fetchData;
+        function toggleMaster() { document.getElementById('main-table').classList.toggle('master-active'); }
+        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display='block'; setTimeout(() => t.style.display='none', 2000); }
+        window.onload = init;
     </script>
 </body>
 </html>
