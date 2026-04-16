@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>로그인 - 출하검사 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-violet-50 flex items-center justify-center h-screen">
+    <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md border-2 border-violet-100">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-black text-violet-950 italic mb-2">출하검사 시스템</h1>
+            <p class="text-slate-400 font-bold text-sm">Team Inspection Platform</p>
+        </div>
+        <div class="space-y-6">
+            <div>
+                <label class="block text-xs font-black text-violet-700 uppercase mb-2">ID</label>
+                <input type="text" id="user-id" class="w-full p-4 bg-violet-50 border-2 border-violet-100 rounded-2xl outline-none focus:border-violet-500 font-bold">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-violet-700 uppercase mb-2">Password</label>
+                <input type="password" id="user-pw" class="w-full p-4 bg-violet-50 border-2 border-violet-100 rounded-2xl outline-none focus:border-violet-500 font-bold">
+            </div>
+            <button onclick="login()" class="w-full bg-violet-700 text-white py-5 rounded-2xl font-black text-lg shadow-lg hover:bg-violet-800 transition-all active:scale-95">로그인</button>
+        </div>
+        <p id="error-msg" class="text-red-500 text-center mt-6 font-bold text-sm hidden">계정 정보가 올바르지 않습니다.</p>
+    </div>
+    <script>
+        async function login() {
+            const id = document.getElementById('user-id').value;
+            const pw = document.getElementById('user-pw').value;
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id, pw })
+            });
+            if(res.ok) location.href = '/';
+            else document.getElementById('error-msg').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
